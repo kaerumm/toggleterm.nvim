@@ -196,12 +196,15 @@ end
 --- containing buffers filetype with the passed in
 --- comparator function or the default which matches
 --- the filetype
+--- @param terminal Terminal
 --- @param comparator function?
 --- @return boolean, TerminalWindow[]
-function M.find_open_windows(comparator)
+function M.find_open_windows(terminal, comparator)
   comparator = comparator or default_compare
   local term_wins, is_open = {}, false
-  for _, tab in ipairs(api.nvim_list_tabpages()) do
+  local tabs = api.nvim_list_tabpages()
+  if terminal.tab_scoped then tabs = { api.nvim_get_current_tabpage() } end
+  for _, tab in ipairs(tabs) do
     for _, win in pairs(api.nvim_tabpage_list_wins(tab)) do
       local buf = api.nvim_win_get_buf(win)
       if comparator(buf) then
@@ -211,6 +214,18 @@ function M.find_open_windows(comparator)
     end
   end
   return is_open, term_wins
+end
+
+--- Returns if the currently opened window
+--- is a toggleterm window.
+--- @param comparator function?
+--- @return TerminalWindow?
+function M._get_current_win_if_is_term(comparator)
+  comparator = comparator or default_compare
+  local win = api.nvim_get_current_win()
+  local buf = api.nvim_win_get_buf(win)
+  if comparator(buf) then return { window = win, term_id = vim.b[buf].toggle_number } end
+  return nil
 end
 
 ---Switch to the given buffer without changing the alternate
@@ -308,13 +323,14 @@ end
 --- @param size number
 --- @param term Terminal
 function M.open_split(size, term)
-  local has_open, windows = M.find_open_windows()
+  local has_open, windows = M.find_open_windows(term)
   local commands = split_commands[term.direction]
 
   if has_open then
-    -- we need to be in the terminal window most recently opened
-    -- in order to split it
-    local split_win = windows[#windows]
+    local window = M._get_current_win_if_is_term()
+
+    local most_recent_window = windows[#windows]
+    local split_win = window or most_recent_window
     if config.persist_size then M.save_window_size(term.direction, split_win.window) end
     api.nvim_set_current_win(split_win.window)
     local window_width = vim.o.columns

@@ -72,6 +72,7 @@ local terminals = {}
 --- @field on_create fun(term:Terminal)?
 --- @field on_open fun(term:Terminal)?
 --- @field on_close fun(term:Terminal)?
+--- @field tab_scoped boolean? whether or not a terminal should be scoped to a tab
 
 --- @class Terminal
 --- @field newline_chr string
@@ -98,6 +99,7 @@ local terminals = {}
 --- @field on_create fun(term:Terminal)?
 --- @field on_open fun(term:Terminal)?
 --- @field on_close fun(term:Terminal)?
+--- @field tab_scoped boolean
 --- @field _display_name fun(term: Terminal): string
 --- @field __state TerminalState
 local Terminal = {}
@@ -218,6 +220,7 @@ function Terminal:new(term)
   term.on_stdout = vim.F.if_nil(term.on_stdout, conf.on_stdout)
   term.on_stderr = vim.F.if_nil(term.on_stderr, conf.on_stderr)
   term.on_exit = vim.F.if_nil(term.on_exit, conf.on_exit)
+  term.tab_scoped = term.tab_scoped or false
   term.__state = { mode = "?" }
   if term.close_on_exit == nil then term.close_on_exit = conf.close_on_exit end
   -- Add the newly created terminal to the list of all terminals
